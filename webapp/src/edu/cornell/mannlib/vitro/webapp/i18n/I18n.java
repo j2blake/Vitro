@@ -3,6 +3,7 @@
 package edu.cornell.mannlib.vitro.webapp.i18n;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import edu.cornell.mannlib.vitro.webapp.application.ApplicationUtils;
 import edu.cornell.mannlib.vitro.webapp.controller.VitroRequest;
 import edu.cornell.mannlib.vitro.webapp.i18n.selection.SelectedLocale;
 import edu.cornell.mannlib.vitro.webapp.utils.developer.DeveloperSettings;
@@ -210,7 +212,10 @@ public class I18n {
 				throw new NullPointerException("bundleName may not be null.");
 			}
 
-			String themeI18nPath = "/" + themeDirectory + BUNDLE_DIRECTORY;
+			Path homeDirPath = ApplicationUtils.instance().getHomeDirectory()
+					.getPath();
+			Path themeI18nPath = homeDirPath.resolve(themeDirectory).resolve(
+					BUNDLE_DIRECTORY);
 			String appI18nPath = "/" + BUNDLE_DIRECTORY;
 
 			log.debug("Paths are '" + themeI18nPath + "' and '" + appI18nPath

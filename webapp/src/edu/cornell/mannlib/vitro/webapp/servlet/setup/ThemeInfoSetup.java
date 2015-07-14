@@ -23,6 +23,7 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.shared.Lock;
 import com.hp.hpl.jena.util.iterator.ClosableIterator;
 
+import edu.cornell.mannlib.vitro.webapp.application.ApplicationUtils;
 import edu.cornell.mannlib.vitro.webapp.beans.ApplicationBean;
 import edu.cornell.mannlib.vitro.webapp.beans.ApplicationBean.ThemeInfo;
 import edu.cornell.mannlib.vitro.webapp.dao.VitroVocabulary;
@@ -38,12 +39,12 @@ public class ThemeInfoSetup implements ServletContextListener {
 		ServletContext ctx = sce.getServletContext();
 		StartupStatus ss = StartupStatus.getBean(ctx);
 
-		String themeDirPath = ctx.getRealPath("/themes");
-		if (themeDirPath == null) {
-			throw new IllegalStateException(
-					"Application does not have a /themes directory.");
+		File themesBaseDir = ApplicationUtils.instance().getHomeDirectory()
+				.getPath().resolve("themes").toFile();
+		if (!themesBaseDir.exists()) {
+			throw new IllegalStateException("Vitro home directory "
+					+ "does not contain a themes sub-directory.");
 		}
-		File themesBaseDir = new File(themeDirPath);
 
 		List<String> themeNames = getThemeNames(themesBaseDir);
 		log.debug("themeNames: " + themeNames);
@@ -74,8 +75,8 @@ public class ThemeInfoSetup implements ServletContextListener {
 		ApplicationBean.themeInfo = new ThemeInfo(themesBaseDir,
 				defaultThemeName, themeNames);
 		ss.info(this, "current theme: " + currentThemeName
-				+ ", default theme: " + defaultThemeName + ", available themes: "
-				+ themeNames);
+				+ ", default theme: " + defaultThemeName
+				+ ", available themes: " + themeNames);
 	}
 
 	/** Get a list of the names of available themes, sorted alphabetically. */
@@ -93,7 +94,8 @@ public class ThemeInfoSetup implements ServletContextListener {
 	}
 
 	private String getCurrentThemeName(ServletContext ctx) {
-		OntModel ontModel = ModelAccess.on(ctx).getOntModel(APPLICATION_METADATA);
+		OntModel ontModel = ModelAccess.on(ctx).getOntModel(
+				APPLICATION_METADATA);
 
 		ontModel.enterCriticalSection(Lock.READ);
 		try {

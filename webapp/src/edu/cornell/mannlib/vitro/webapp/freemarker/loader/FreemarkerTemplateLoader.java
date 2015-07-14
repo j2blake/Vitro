@@ -170,6 +170,11 @@ public class FreemarkerTemplateLoader implements TemplateLoader {
 					+ templateSource);
 		}
 	}
+	
+	@Override
+	public String toString() {
+		return "FreemarkerTemplateLoader[baseDir=" + baseDir + "]";
+	}
 
 	// ----------------------------------------------------------------------
 	// Helper classes

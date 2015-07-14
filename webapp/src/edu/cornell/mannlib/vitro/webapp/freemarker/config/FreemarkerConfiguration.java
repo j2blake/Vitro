@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import edu.cornell.mannlib.vitro.webapp.application.ApplicationUtils;
 import edu.cornell.mannlib.vitro.webapp.config.RevisionInfoBean;
 import edu.cornell.mannlib.vitro.webapp.controller.VitroRequest;
 import edu.cornell.mannlib.vitro.webapp.controller.freemarker.DelimitingTemplateLoader;
@@ -142,8 +143,8 @@ public abstract class FreemarkerConfiguration {
 		List<TemplateLoader> loaders = new ArrayList<TemplateLoader>();
 
 		// Theme template loader - only if the theme has a template directory.
-		String themeTemplatePath = ctx.getRealPath("/" + themeDir) + "/templates";
-		File themeTemplateDir = new File(themeTemplatePath);
+		File themeTemplateDir = ApplicationUtils.instance().getHomeDirectory()
+				.getPath().resolve(themeDir).resolve("templates").toFile();
 		if (themeTemplateDir.exists()) {
 			loaders.add(new FreemarkerTemplateLoader(themeTemplateDir));
 		}

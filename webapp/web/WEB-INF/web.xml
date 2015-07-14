@@ -1238,6 +1238,18 @@
     <url-pattern>/selectLocale</url-pattern>
   </servlet-mapping>
 
+  <servlet>
+    <description>
+      When a request for /themes/* is received, serve the corresponding file from the Vitro home directory.
+    </description>
+    <servlet-name>ThemeFilesServlet</servlet-name>
+    <servlet-class>edu.cornell.mannlib.vitro.webapp.themes.ThemeFilesServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ThemeFilesServlet</servlet-name>
+    <url-pattern>/themes/*</url-pattern>
+  </servlet-mapping>
+  
   <!-- ==================== mime types ============================== -->
   
   <mime-mapping>

@@ -201,7 +201,6 @@
 		<!-- copy all sorts of web stuff into the webapp directory. -->
 		<copy todir="${main.webapp.dir}">
 			<fileset dir="${appbase.dir}/web" />
-			<fileset dir="${appbase.dir}" includes="themes/**/*" />
 		</copy>
 
 		<copy todir="${main.webinf.dir}">
@@ -263,11 +262,13 @@
 	<target name="prepareVitroHomeDir" depends="prepare">
 		<mkdir dir="${vitrohome.build.dir}" />
 		<mkdir dir="${vitrohome.image.dir}" />
+		
 		<copy todir="${vitrohome.image.dir}" >
 			<fileset dir="${appbase.dir}/config" >
 				<include name="example.runtime.properties" />
 			</fileset>
 		</copy>
+		
 		<mkdir dir="${vitrohome.image.dir}/config" />
 		<copy todir="${vitrohome.image.dir}/config" >
 			<fileset dir="${appbase.dir}/config" >
@@ -275,9 +276,11 @@
 				<include name="example.developer.properties" />
 			</fileset>
 		</copy>
+		
 		<copy todir="${vitrohome.image.dir}" >
 			<fileset dir="${appbase.dir}" >
 				<include name="rdf/**/*" />
+				<include name="themes/**/*" />
 			</fileset>
 		</copy>
 	

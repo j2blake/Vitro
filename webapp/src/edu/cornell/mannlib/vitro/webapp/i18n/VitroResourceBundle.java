@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -68,10 +69,19 @@ public class VitroResourceBundle extends ResourceBundle {
 	 * Of course, if all.properties doesn't exist either, then we have a
 	 * problem, but that will be reported elsewhere.
 	 * 
+	 * @param appI18nPath
+	 *            the absolute path within the webapp where the I18n files are
+	 *            located. For example, "/i18n/"
+	 * 
+	 * @param themeI18nPath
+	 *            the absolute path within the file system where the theme's
+	 *            I18n files are located. For example,
+	 *            "/Users/jeb228/vivo_home/themes/vitro/i18n"
+	 * 
 	 * @return the populated bundle or null.
 	 */
 	public static VitroResourceBundle getBundle(String bundleName,
-			ServletContext ctx, String appI18nPath, String themeI18nPath,
+			ServletContext ctx, String appI18nPath, Path themeI18nPath,
 			Control control) {
 		try {
 			return new VitroResourceBundle(bundleName, ctx, appI18nPath,
@@ -92,13 +102,13 @@ public class VitroResourceBundle extends ResourceBundle {
 	private final String bundleName;
 	private final ServletContext ctx;
 	private final String appI18nPath;
-	private final String themeI18nPath;
+	private final Path themeI18nPath;
 	private final Control control;
 	private final Properties defaults;
 	private final Properties properties;
 
 	private VitroResourceBundle(String bundleName, ServletContext ctx,
-			String appI18nPath, String themeI18nPath, Control control)
+			String appI18nPath, Path themeI18nPath, Control control)
 			throws IOException {
 		this.bundleName = bundleName;
 		this.ctx = ctx;
@@ -117,7 +127,7 @@ public class VitroResourceBundle extends ResourceBundle {
 		String resourceName = control.toResourceName(bundleName, "properties");
 
 		String defaultsPath = joinPath(appI18nPath, resourceName);
-		String propertiesPath = joinPath(themeI18nPath, resourceName);
+		Path propertiesPath = themeI18nPath.resolve(resourceName);
 		File defaultsFile = locateFile(defaultsPath);
 		File propertiesFile = locateFile(propertiesPath);
 
@@ -163,7 +173,7 @@ public class VitroResourceBundle extends ResourceBundle {
 	private void loadReferencedFile(String key, String filepath)
 			throws IOException {
 		String appFilePath = joinPath(appI18nPath, filepath);
-		String themeFilePath = joinPath(themeI18nPath, filepath);
+		Path themeFilePath = themeI18nPath.resolve(filepath);
 		File appFile = locateFile(appFilePath);
 		File themeFile = locateFile(themeFilePath);
 
@@ -207,6 +217,25 @@ public class VitroResourceBundle extends ResourceBundle {
 			return null;
 		}
 		log.debug("Located file '" + path + "' at '" + realPath + "'");
+		return f;
+	}
+
+	private File locateFile(Path path) {
+		if (path == null) {
+			log.debug("Path is null.");
+			return null;
+		}
+
+		File f = path.toFile();
+		if (!f.isFile()) {
+			log.debug("No file at '" + path + "'");
+			return null;
+		}
+		if (!f.canRead()) {
+			log.error("Can't read the file at '" + path + "'");
+			return null;
+		}
+		log.debug("Located file '" + path + "'");
 		return f;
 	}
 
