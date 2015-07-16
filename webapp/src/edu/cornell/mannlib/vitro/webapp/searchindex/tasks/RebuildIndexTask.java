@@ -157,7 +157,8 @@ public class RebuildIndexTask implements Task {
                         + "the search engine is not responding.");
                 return 0;
             } catch (SearchEngineException e) {
-                log.warn("Failed to get document count from the search index.", e);
+				log.warn("Failed to get document count from the search index: "
+						+ e);
                 return 0;
             }
         }

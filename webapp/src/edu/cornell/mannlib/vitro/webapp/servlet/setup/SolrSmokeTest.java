@@ -19,6 +19,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import edu.cornell.mannlib.vitro.webapp.config.ConfigurationProperties;
@@ -43,6 +44,13 @@ public class SolrSmokeTest implements ServletContextListener {
 	 */
 	private static final int SOCKET_TIMEOUT_STATUS = -500;
 
+	/*
+	 * We don't want to treat a connection refusal as a non-recoverable error
+	 * like the other exceptions. So pretend there's a status code for it
+	 * instead.
+	 */
+	private static final int SOCKET_REFUSED_STATUS = -499;
+	
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
 		final StartupStatus ss = StartupStatus.getBean(sce.getServletContext());
@@ -125,7 +133,9 @@ public class SolrSmokeTest implements ServletContextListener {
 			int status = e.getStatusCode();
 			Throwable cause = e.getCause();
 
-			if (status == SOCKET_TIMEOUT_STATUS) {
+			if (status == SOCKET_REFUSED_STATUS) {
+				warnRefusedConnection();
+			} else if (status == SOCKET_TIMEOUT_STATUS) {
 				warnSocketTimeout();
 			} else if (status != 0) {
 				warnBadHttpStatus(status);
@@ -149,13 +159,20 @@ public class SolrSmokeTest implements ServletContextListener {
 					e);
 		}
 
+		private void warnRefusedConnection() {
+			ss.warning(listener, "Can't connect to the Solr search engine. "
+					+ "The socket connection has been repeatedly refused. "
+					+ "Check the value of vitro.local.solr.url in "
+					+ "runtime.properties. Is Solr responding at that URL?");
+		}
+
 		private void warnSocketTimeout() {
 			ss.warning(listener, "Can't connect to the Solr search engine. "
 					+ "The socket connection has repeatedly timed out. "
 					+ "Check the value of vitro.local.solr.url in "
 					+ "runtime.properties. Is Solr responding at that URL?");
 		}
-
+		
 		private void warnBadHttpStatus(int status) {
 			ss.warning(listener, "Can't connect to the Solr search engine. "
 					+ "The Solr server returned a status code of " + status
@@ -240,6 +257,10 @@ public class SolrSmokeTest implements ServletContextListener {
 				HttpResponse response = httpClient.execute(method);
 				statusCode = response.getStatusLine().getStatusCode();
 				SolrSmokeTest.log.debug("HTTP status was " + statusCode);
+			} catch (HttpHostConnectException e) {
+				// Catch the exception so we can retry this.
+				// Save the status so we know why we failed.
+				statusCode = SolrSmokeTest.SOCKET_REFUSED_STATUS;
 			} catch (SocketTimeoutException e) {
 				// Catch the exception so we can retry this.
 				// Save the status so we know why we failed.
