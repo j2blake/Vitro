@@ -126,7 +126,7 @@ public class VitroResourceBundle extends ResourceBundle {
 	private void loadProperties() throws IOException {
 		String resourceName = control.toResourceName(bundleName, "properties");
 
-		String defaultsPath = joinPath(appI18nPath, resourceName);
+		String defaultsPath = assembleWebappPath(appI18nPath, resourceName);
 		Path propertiesPath = themeI18nPath.resolve(resourceName);
 		File defaultsFile = locateFile(defaultsPath);
 		File propertiesFile = locateFile(propertiesPath);
@@ -172,7 +172,7 @@ public class VitroResourceBundle extends ResourceBundle {
 
 	private void loadReferencedFile(String key, String filepath)
 			throws IOException {
-		String appFilePath = joinPath(appI18nPath, filepath);
+		String appFilePath = assembleWebappPath(appI18nPath, filepath);
 		Path themeFilePath = themeI18nPath.resolve(filepath);
 		File appFile = locateFile(appFilePath);
 		File themeFile = locateFile(themeFilePath);
@@ -191,15 +191,12 @@ public class VitroResourceBundle extends ResourceBundle {
 		}
 	}
 
-	private String joinPath(String root, String twig) {
-		if ((root.charAt(root.length() - 1) == File.separatorChar)
-				|| (twig.charAt(0) == File.separatorChar)) {
-			return root + twig;
-		} else {
-			return root + File.separatorChar + twig;
-		}
+	/** Trying to find a resource file? Guard against silly path problems. */
+	private String assembleWebappPath(String root, String twig) {
+		String dirty = '/' + root + '/' + twig;
+		return dirty.replace('\\',  '/').replace("//", "/");
 	}
-
+	
 	private File locateFile(String path) {
 		String realPath = ctx.getRealPath(path);
 		if (realPath == null) {
@@ -219,7 +216,7 @@ public class VitroResourceBundle extends ResourceBundle {
 		log.debug("Located file '" + path + "' at '" + realPath + "'");
 		return f;
 	}
-
+	
 	private File locateFile(Path path) {
 		if (path == null) {
 			log.debug("Path is null.");
