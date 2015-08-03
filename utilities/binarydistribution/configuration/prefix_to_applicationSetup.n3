@@ -1,0 +1,11 @@
+# ------------------------------------------------------------------------------
+#
+# BINARY DISTRIBUTION
+#
+# This differs from the default setup only in that it uses TDB to store the 
+# content models.
+#
+# Fortunately, TDBContentTripleSource will accept a relative path to the models 
+# directory -- relative to the home directory. That means that we can hard-code 
+# the path here, without loss of generality.
+#

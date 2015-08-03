@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+
+     binary_distribution
+     
+     Package a release of VIVO or Vitro as a ZIP file.
+                   
+     ====================================================================== -->
+
+<project name="binary_distribution" default="fromReleaseDirectory">
+	<description>
+            Package a release of VIVO or Vitro as a ZIP file.
+    </description>
+
+	<property name="src.config.dir" location="configuration" />
+	<property name="src.jetty.dir" location="jetty" />
+	<property name="src.scripts.dir" location="script_templates" />
+
+	<property name="build.dir" location=".build" />
+	<property name="build.image.dir" location="${build.dir}/image" />
+	<property name="build.properties.file" location="binary_build.properties" />
+
+	<!-- ================================= 
+          target: describe              
+         ================================= -->
+	<target name="describe"
+	        description="--> Describe the targets (this is the default).">
+		<echo>
+fromReleaseDirectory - package the files found at .build/distribution in the release directory.
+	    </echo>
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: clean                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="clean">
+		<delete dir="${build.dir}" includeemptydirs="true" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: prepare                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="prepare">
+		<mkdir dir="${build.dir}" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: propertiesFile                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="propertiesFile">
+		<fail message="You must create a properties file: &quot;${build.properties.file}&quot;.">
+			<condition>
+				<not>
+					<available file="${build.properties.file}" />
+				</not>
+			</condition>
+		</fail>
+		<property file="${build.properties.file}" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: releaseProperties                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="releaseProperties" depends="propertiesFile">
+		<fail unless="release.distribution.dir"
+		      message="${build.properties.file} must contain a value for release.distribution.dir" />
+		<fail message="Release directory does not exist: &quot;${release.distribution.dir}&quot;.">
+			<condition>
+				<not>
+					<available file="${release.distribution.dir}" />
+				</not>
+			</condition>
+		</fail>
+
+		<fail unless="binary.distribution.name"
+		      message="${build.properties.file} must contain a value for binary.distribution.name" />
+		<property name="distribution.zip.file"
+		          location="${build.dir}/${binary.distribution.name}.zip" />
+
+		<fail unless="product.name"
+		      message="${build.properties.file} must contain a value for product.name" />
+		<fail unless="app.main.name"
+		      message="${build.properties.file} must contain a value for app.main.name" />
+		<fail unless="app.solr.name"
+		      message="${build.properties.file} must contain a value for app.solr.name" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: createBaseImageDir
+          
+          Create the image directory, copy the scripts, with appropriate replacements. 
+          Create the image/logs directory.
+         - - - - - - - - - - - - - - - - - -->
+	<target name="createBaseImageDir">
+		<mkdir dir="${build.image.dir}" />
+		<copy todir="${build.image.dir}">
+			<fileset dir="${src.scripts.dir}" />
+			<filterset>
+				<filter token="PRODUCT_NAME" value="${product.name}" />
+				<filter token="MAIN_NAME" value="${app.main.name}" />
+				<filter token="SOLR_NAME" value="${app.solr.name}" />
+			</filterset>
+		</copy>
+
+		<mkdir dir="${build.image.dir}/logs" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: createImageLibDir
+          
+          Create the image lib directory, copy the Jetty executables (renaming the main JAR) 
+              and the WAR files from the release.
+         - - - - - - - - - - - - - - - - - -->
+	<target name="createImageLibDir">
+		<mkdir dir="${build.image.dir}/lib" />
+		<copy todir="${build.image.dir}/lib">
+			<fileset dir="${src.jetty.dir}">
+				<include name="jsp/*" />
+				<include name="start.jar" />
+			</fileset>
+		</copy>
+		<copy todir="${build.image.dir}/lib">
+			<fileset dir="${src.jetty.dir}">
+				<include name="jetty-runner*.jar" />
+			</fileset>
+			<globmapper from="jetty-runner*.jar" to="jetty-runner-vitro.jar" />
+		</copy>
+
+		<property name="main.war.file"
+		          location="${release.distribution.dir}/${app.main.name}.war" />
+		<fail message="Main WAR file does not exist: &quot;${main.war.file}&quot;.">
+			<condition>
+				<not>
+					<available file="${main.war.file}" />
+				</not>
+			</condition>
+		</fail>
+		<property name="solr.war.file"
+		          location="${release.distribution.dir}/${app.solr.name}.war" />
+		<fail message="Solr WAR file does not exist: &quot;${solr.war.file}&quot;.">
+			<condition>
+				<not>
+					<available file="${solr.war.file}" />
+				</not>
+			</condition>
+		</fail>
+
+		<copy todir="${build.image.dir}/lib">
+			<fileset dir="${release.distribution.dir}">
+				<include name="${app.main.name}.war" />
+				<include name="${app.solr.name}.war" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: createImageHomeDir
+          
+          Unpack the Vitro home and the Solr home.
+          Create runtime.properties and applicationSetup.n3
+          
+          The explicit replaceregex filters make this rather brittle, but still
+          more robust than if we just put the entire files in here. (yes?)
+         - - - - - - - - - - - - - - - - - -->
+	<target name="createImageHomeDir">
+		<property name="main.home.file"
+		          location="${release.distribution.dir}/vitrohome.tar" />
+		<fail message="Main Home file does not exist: &quot;${main.home.file}&quot;.">
+			<condition>
+				<not>
+					<available file="${main.home.file}" />
+				</not>
+			</condition>
+		</fail>
+		<mkdir dir="${build.image.dir}/home" />
+		<untar src="${main.home.file}" dest="${build.image.dir}/home" />
+
+		<property name="solr.home.file"
+		          location="${release.distribution.dir}/solrhome.tar" />
+		<fail message="Solr Home file does not exist: &quot;${solr.home.file}&quot;.">
+			<condition>
+				<not>
+					<available file="${solr.home.file}" />
+				</not>
+			</condition>
+		</fail>
+		<mkdir dir="${build.image.dir}/home/solr" />
+		<untar src="${solr.home.file}" dest="${build.image.dir}/home/solr" />
+
+		<concat destfile="${build.image.dir}/home/runtime.properties">
+			<fileset dir="${src.config.dir}">
+				<include name="prefix_to_runtime.properties" />
+			</fileset>
+			<fileset dir="${build.image.dir}/home">
+				<include name="example.runtime.properties" />
+			</fileset>
+			<filterchain>
+				<replaceregex pattern="^\s*email\..*" replace="#\0" />
+			</filterchain>
+		</concat>
+
+		<concat destfile="${build.image.dir}/home/config/applicationSetup.n3">
+			<fileset dir="${src.config.dir}">
+				<include name="prefix_to_applicationSetup.n3" />
+			</fileset>
+			<fileset dir="${build.image.dir}/home/config">
+				<include name="example.applicationSetup.n3" />
+			</fileset>
+			<filterchain>
+				<replaceregex pattern=":sdbContentTripleSource ;"
+				              replace=":tdbContentTripleSource ;" />
+				<replaceregex byline="false"
+				              flags="m"
+				              pattern="^#(:tdbContentTripleSource.*)\n#(.*)\n#(.*)\n#(.*)\n#(.*)"
+				              replace="\1${line.separator}\2${line.separator}\3${line.separator}\4${line.separator}\5" />
+			</filterchain>
+		</concat>
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: zipIt                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="zipIt">
+		<zip destfile="${build.dir}/${binary.distribution.name}.zip"
+		     basedir="${build.image.dir}" />
+		<tar tarfile="${build.dir}/${binary.distribution.name}.tar.gz"
+		     basedir="${build.image.dir}"
+		     compression="gzip" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: createImageDir
+         - - - - - - - - - - - - - - - - - -->
+	<target name="createImageDir"
+	        depends="createBaseImageDir, createImageLibDir, createImageHomeDir, zipIt">
+	</target>
+
+	<!-- ================================= 
+          target: fromReleaseDirectory              
+         ================================= -->
+	<target name="fromReleaseDirectory"
+	        depends="clean, prepare, releaseProperties, createImageDir"
+	        description="--> Create a ZIP from the distribution files in a release directory.">
+	</target>
+
+</project>
