@@ -37,7 +37,7 @@ java -Dcatalina.home=$BASE_DIR \
      -Dvitro.home=$BASE_DIR/home \
      -Dorg.apache.jasper.compiler.disablejsr199=true \
      -jar $BASE_DIR/lib/jetty-runner-vitro.jar \
-     --lib lib/jsp \
+     --lib $BASE_DIR/lib/jsp \
      --path /@SOLR_NAME@ $BASE_DIR/lib/@SOLR_NAME@.war \
      --path /@MAIN_NAME@ $BASE_DIR/lib/@MAIN_NAME@.war \
      > $BASE_DIR/logs/jetty.output 2>&1 &

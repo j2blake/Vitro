@@ -30,14 +30,14 @@ pushd %~dp0
 start "jetty" /B ^
     java -Dcatalina.home=. ^
     -Dsolr.solr.home=home/solr ^
-	-Dvitro.home=home ^
-	-Dorg.apache.jasper.compiler.disablejsr199=true ^
-	-jar lib/jetty-runner-vitro.jar ^
-	--lib lib/jsp ^
-	--path /@SOLR_NAME@ lib/@SOLR_NAME@.war ^
-	--path /@MAIN_NAME@ lib/@MAIN_NAME@.war ^
-	--stop-key abc123 --stop-port 8181 ^
-	> logs/jetty.output 2>&1
+    -Dvitro.home=home ^
+    -Dorg.apache.jasper.compiler.disablejsr199=true ^
+    -jar lib/jetty-runner-vitro.jar ^
+    --lib lib/jsp ^
+    --path /@SOLR_NAME@ lib/@SOLR_NAME@.war ^
+    --path /@MAIN_NAME@ lib/@MAIN_NAME@.war ^
+    --stop-key abc123 --stop-port 8181 ^
+    > logs/jetty.output 2>&1
 popd
 
 for /L %%t in (10, 10, 180) do (
