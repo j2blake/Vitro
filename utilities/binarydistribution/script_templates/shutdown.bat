@@ -29,7 +29,7 @@ pushd %~dp0
 java -jar lib/start.jar -DSTOP.PORT=8181 -DSTOP.KEY=abc123 -DSTOP.WAIT=30 --stop >NUL 2>NUL
 popd
 
-if not errorlevel 0 (
+if errorlevel -4 (
   echo -
   echo - FAILED TO STOP @PRODUCT_NAME@.
   echo -

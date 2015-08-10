@@ -24,10 +24,10 @@ if errorlevel 0 (
 )
 
 echo -
-echo - Starting @PRODUCT_NAME@...
+echo - Starting @PRODUCT_NAME@... Please wait.
 
 pushd %~dp0
-start "jetty" /B ^
+start "jetty" ^
     java -Dcatalina.home=. ^
     -Dsolr.solr.home=home/solr ^
     -Dvitro.home=home ^

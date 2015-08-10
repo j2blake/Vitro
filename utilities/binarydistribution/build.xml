@@ -16,7 +16,7 @@
 	<property name="src.jetty.dir" location="jetty" />
 	<property name="src.scripts.dir" location="script_templates" />
 
-	<property name="build.dir" location=".build" />
+	<property name="build.dir" location="distribution" />
 	<property name="build.image.dir" location="${build.dir}/image" />
 	<property name="build.properties.file" location="binary_build.properties" />
 
@@ -101,6 +101,12 @@ fromReleaseDirectory - package the files found at .build/distribution in the rel
 				<filter token="SOLR_NAME" value="${app.solr.name}" />
 			</filterset>
 		</copy>
+		<chmod perm="+x">
+		  <fileset dir="${build.image.dir}">
+		    <include name="startup"/>
+		    <include name="shutdown"/>
+		  </fileset>
+		</chmod>
 
 		<mkdir dir="${build.image.dir}/logs" />
 	</target>
@@ -223,9 +229,6 @@ fromReleaseDirectory - package the files found at .build/distribution in the rel
 	<target name="zipIt">
 		<zip destfile="${build.dir}/${binary.distribution.name}.zip"
 		     basedir="${build.image.dir}" />
-		<tar tarfile="${build.dir}/${binary.distribution.name}.tar.gz"
-		     basedir="${build.image.dir}"
-		     compression="gzip" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 

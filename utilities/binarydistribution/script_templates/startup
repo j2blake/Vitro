@@ -19,7 +19,7 @@ check_is_running() {
 }
 
 check_is_running
-if [ $? == 0 ] 
+if [ $? = 0 ] 
 then
   echo
   echo "@PRODUCT_NAME@ is already running on port 8080."
@@ -28,7 +28,7 @@ then
 fi
 
 echo
-echo "Starting @PRODUCT_NAME@..."
+echo "Starting @PRODUCT_NAME@... Please wait."
 
 BASE_DIR="$( cd "$(dirname "$0")" ; pwd )"
 
@@ -45,7 +45,7 @@ java -Dcatalina.home=$BASE_DIR \
 for time in 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180
 do
   check_is_running
-  if [ $? == 0 ]
+  if [ $? = 0 ]
   then
     echo "Started @PRODUCT_NAME@ on port 8080."
     echo

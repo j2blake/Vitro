@@ -1,6 +1,11 @@
 This directory contains the Jetty components that we need:
 
 -------------------------------
+NOTE: the current set is based on Jetty 8.1.16, because I couldn't get Jetty 9
+to work with the JSP compiler. Using Jetty-Runner 8.1.15 because for some reason,
+8.1.16 had no main-class in the JAR manifest.
+
+-------------------------------
 jetty-runner-XXXXXX.jar
 
 This is the main Jetty executable, packaged as a JAR file. It is not part of 
