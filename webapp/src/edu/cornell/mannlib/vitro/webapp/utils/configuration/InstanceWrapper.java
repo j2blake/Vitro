@@ -36,6 +36,7 @@ public class InstanceWrapper {
 	private static Map<String, PropertyMethod> parsePropertyAnnotations(
 			Class<?> concreteClass) throws InstanceWrapperException {
 		Map<String, PropertyMethod> map = new HashMap<>();
+		// TODO This is where to make them inheritable.
 		for (Method method : concreteClass.getDeclaredMethods()) {
 			Property annotation = method.getAnnotation(Property.class);
 			if (annotation == null) {
@@ -57,11 +58,20 @@ public class InstanceWrapper {
 						"Two property methods have the same URI value: "
 								+ map.get(uri).getMethod() + ", and " + method);
 			}
+
 			try {
-				map.put(uri, PropertyType.createPropertyMethod(method));
+				map.put(uri,
+						PropertyType.createPropertyMethod(method, annotation));
 			} catch (PropertyTypeException e) {
 				throw new InstanceWrapperException(
 						"Failed to create the PropertyMethod", e);
+			}
+			
+			if (annotation.minOccurs() < 0 ) {
+				throw new InstanceWrapperException("minOccurs must not be negative.");
+			}
+			if (annotation.maxOccurs() < annotation.minOccurs() ) {
+				throw new InstanceWrapperException("maxOccurs must not be less than minOccurs.");
 			}
 		}
 		return map;

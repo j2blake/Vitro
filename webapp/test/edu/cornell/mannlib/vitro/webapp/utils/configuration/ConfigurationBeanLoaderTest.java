@@ -5,7 +5,6 @@ package edu.cornell.mannlib.vitro.webapp.utils.configuration;
 import static com.hp.hpl.jena.datatypes.xsd.XSDDatatype.XSDfloat;
 import static com.hp.hpl.jena.datatypes.xsd.XSDDatatype.XSDstring;
 import static edu.cornell.mannlib.vitro.testing.ModelUtilitiesTestHelper.dataProperty;
-import static edu.cornell.mannlib.vitro.testing.ModelUtilitiesTestHelper.model;
 import static edu.cornell.mannlib.vitro.testing.ModelUtilitiesTestHelper.objectProperty;
 import static edu.cornell.mannlib.vitro.testing.ModelUtilitiesTestHelper.typeStatement;
 import static edu.cornell.mannlib.vitro.webapp.utils.configuration.ConfigurationBeanLoader.toJavaUri;
@@ -20,21 +19,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import stubs.edu.cornell.mannlib.vitro.webapp.modelaccess.ModelAccessFactoryStub;
-import stubs.javax.servlet.ServletContextStub;
-import stubs.javax.servlet.http.HttpServletRequestStub;
-import stubs.javax.servlet.http.HttpSessionStub;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Statement;
 
-import edu.cornell.mannlib.vitro.testing.AbstractTestClass;
 import edu.cornell.mannlib.vitro.webapp.modelaccess.ContextModelAccess;
-import edu.cornell.mannlib.vitro.webapp.modelaccess.ModelAccess.ModelAccessFactory;
 import edu.cornell.mannlib.vitro.webapp.modelaccess.RequestModelAccess;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.ConfigurationRdfParser.InvalidConfigurationRdfException;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.InstanceWrapper.InstanceWrapperException;
@@ -50,47 +41,8 @@ import edu.cornell.mannlib.vitro.webapp.utils.configuration.WrappedInstance.Vali
  * instances by URIs, so if a property refers to a created instance, we just
  * pass it in.
  */
-public class ConfigurationBeanLoaderTest extends AbstractTestClass {
-	private static final String GENERIC_INSTANCE_URI = "http://mytest.edu/some_instance";
-	private static final String GENERIC_PROPERTY_URI = "http://mytest.edu/some_property";
-
-	private static final String SIMPLE_SUCCESS_INSTANCE_URI = "http://mytest.edu/simple_success_instance";
-
-	private static final String FULL_SUCCESS_INSTANCE_URI = "http://mytest.edu/full_success_instance";
-	private static final String FULL_SUCCESS_BOOST_PROPERTY = "http://mydomain.edu/hasBoost";
-	private static final String FULL_SUCCESS_TEXT_PROPERTY = "http://mydomain.edu/hasText";
-	private static final String FULL_SUCCESS_HELPER_PROPERTY = "http://mydomain.edu/hasHelper";
-	private static final String FULL_SUCCESS_HELPER_INSTANCE_URI = "http://mytest.edu/full_success_helper_instance";
-
-	private ServletContextStub ctx;
-	private HttpSessionStub session;
-	private HttpServletRequestStub req;
-
-	private Model model;
-
-	private ConfigurationBeanLoader loader;
-	private ConfigurationBeanLoader noRequestLoader;
-	private ConfigurationBeanLoader noContextLoader;
-
-	@Before
-	public void setup() {
-		ctx = new ServletContextStub();
-
-		session = new HttpSessionStub();
-		session.setServletContext(ctx);
-
-		req = new HttpServletRequestStub();
-		req.setSession(session);
-
-		@SuppressWarnings("unused")
-		ModelAccessFactory maf = new ModelAccessFactoryStub();
-
-		model = model();
-
-		loader = new ConfigurationBeanLoader(model, req);
-		noRequestLoader = new ConfigurationBeanLoader(model, ctx);
-		noContextLoader = new ConfigurationBeanLoader(model);
-	}
+public class ConfigurationBeanLoaderTest extends
+		ConfigurationBeanLoaderTestBase {
 
 	// ----------------------------------------------------------------------
 	// Constructor tests
@@ -1063,44 +1015,6 @@ public class ConfigurationBeanLoaderTest extends AbstractTestClass {
 	public void parentObjectCantBeLoaded_leavesNoAccessibleInstanceOfSubordinate()
 			throws ConfigurationBeanLoaderException {
 		fail("parentObjectCantBeLoaded_leavesNoAccessibleInstanceOfSubordinate not implemented");
-	}
-
-	// ----------------------------------------------------------------------
-	// Helper methods for simple failure
-	// ----------------------------------------------------------------------
-
-	private void expectSimpleFailure(Class<?> failureClass,
-			ExpectedThrowable expected, ExpectedThrowable cause)
-			throws ConfigurationBeanLoaderException {
-		expectException(expected.getClazz(), expected.getMessageSubstring(),
-				cause.getClazz(), cause.getMessageSubstring());
-
-		@SuppressWarnings("unused")
-		Object unused = loader.loadInstance(GENERIC_INSTANCE_URI, failureClass);
-	}
-
-	private ExpectedThrowable throwable(Class<? extends Throwable> clazz,
-			String messageSubstring) {
-		return new ExpectedThrowable(clazz, messageSubstring);
-	}
-
-	private static class ExpectedThrowable {
-		private final Class<? extends Throwable> clazz;
-		private final String messageSubstring;
-
-		public ExpectedThrowable(Class<? extends Throwable> clazz,
-				String messageSubstring) {
-			this.clazz = clazz;
-			this.messageSubstring = messageSubstring;
-		}
-
-		public Class<? extends Throwable> getClazz() {
-			return clazz;
-		}
-
-		public String getMessageSubstring() {
-			return messageSubstring;
-		}
 	}
 
 }
