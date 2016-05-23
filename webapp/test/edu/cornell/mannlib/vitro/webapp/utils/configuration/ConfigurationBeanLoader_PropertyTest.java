@@ -5,8 +5,12 @@ package edu.cornell.mannlib.vitro.webapp.utils.configuration;
 import static edu.cornell.mannlib.vitro.testing.ModelUtilitiesTestHelper.dataProperty;
 import static edu.cornell.mannlib.vitro.testing.ModelUtilitiesTestHelper.typeStatement;
 import static edu.cornell.mannlib.vitro.webapp.utils.configuration.ConfigurationBeanLoader.toJavaUri;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
+
+import com.hp.hpl.jena.rdf.model.Statement;
 
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.InstanceWrapper.InstanceWrapperException;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.PropertyType.PropertyTypeException;
@@ -16,6 +20,8 @@ import edu.cornell.mannlib.vitro.webapp.utils.configuration.PropertyType.Propert
  */
 public class ConfigurationBeanLoader_PropertyTest extends
 		ConfigurationBeanLoaderTestBase {
+	protected static final String OTHER_PROPERTY_URI = "http://mytest.edu/different_property";
+
 	// --------------------------------------------
 
 	@Test
@@ -191,6 +197,142 @@ public class ConfigurationBeanLoader_PropertyTest extends
 		@Property(uri = GENERIC_PROPERTY_URI)
 		public void secondProperty(String s) {
 			// Nothing to do
+		}
+	}
+
+	// --------------------------------------------
+
+	@Test
+	public void superclassContainsPropertyAnnotation_success()
+			throws ConfigurationBeanLoaderException {
+		model.add(new Statement[] {
+				typeStatement(GENERIC_INSTANCE_URI,
+						toJavaUri(EmptyPropertyMethodSubclass.class)),
+				dataProperty(GENERIC_INSTANCE_URI, GENERIC_PROPERTY_URI,
+						"Value") });
+
+		EmptyPropertyMethodSubclass instance = loader.loadInstance(
+				GENERIC_INSTANCE_URI, EmptyPropertyMethodSubclass.class);
+
+		assertNotNull(instance);
+		assertEquals("Value", instance.value);
+	}
+
+	@Test
+	public void propertyMethodOverridesPropertyMethod_throwsException()
+			throws ConfigurationBeanLoaderException {
+		model.add(typeStatement(GENERIC_INSTANCE_URI,
+				toJavaUri(PropertyMethodOverPropertyMethodSubclass.class)));
+
+		expectSimpleFailure(
+				PropertyMethodOverPropertyMethodSubclass.class,
+				throwable(ConfigurationBeanLoaderException.class,
+						"Failed to load"),
+				throwable(InstanceWrapperException.class,
+						"conflicts with a property method"));
+	}
+
+	@Test
+	public void plainMethodOverridesPropertyMethod_throwsException()
+			throws ConfigurationBeanLoaderException {
+		model.add(typeStatement(GENERIC_INSTANCE_URI,
+				toJavaUri(PlainOverPropertyMethodSubclass.class)));
+
+		expectSimpleFailure(
+				PlainOverPropertyMethodSubclass.class,
+				throwable(ConfigurationBeanLoaderException.class,
+						"Failed to load"),
+				throwable(InstanceWrapperException.class,
+						"conflicts with a property method"));
+	}
+
+	@Test
+	public void uriConflictsBetweenSubclassAndSuperclassPropertyMethods_throwsException()
+			throws ConfigurationBeanLoaderException {
+		model.add(typeStatement(GENERIC_INSTANCE_URI,
+				toJavaUri(ConflictingUriPropertyMethodSubclass.class)));
+
+		expectSimpleFailure(
+				ConflictingUriPropertyMethodSubclass.class,
+				throwable(ConfigurationBeanLoaderException.class,
+						"Failed to load"),
+				throwable(InstanceWrapperException.class,
+						"Two property methods have the same URI"));
+	}
+
+	@Test
+	public void propertyMethodSameNameButDoesNotOverride_throwsException()
+			throws ConfigurationBeanLoaderException {
+		model.add(new Statement[] {
+				typeStatement(GENERIC_INSTANCE_URI,
+						toJavaUri(DistinctPropertyMethodSubclass.class)),
+				dataProperty(GENERIC_INSTANCE_URI, GENERIC_PROPERTY_URI,
+						"Value"),
+				dataProperty(GENERIC_INSTANCE_URI, OTHER_PROPERTY_URI,
+						100.0F) });
+		
+		expectSimpleFailure(
+				DistinctPropertyMethodSubclass.class,
+				throwable(ConfigurationBeanLoaderException.class,
+						"Failed to load"),
+				throwable(InstanceWrapperException.class,
+						"conflicts with a property method"));
+	}
+
+	public static class PropertyMethodSuperclass {
+		public String value = null;
+
+		@Property(uri = GENERIC_PROPERTY_URI)
+		public void propertySuper(String v) {
+			if (value != null) {
+				throw new RuntimeException("propertySuper has already run.");
+			}
+			value = v;
+		}
+	}
+
+	public static class EmptyPropertyMethodSubclass extends
+			PropertyMethodSuperclass {
+		// Just want to see that the superclass method is run.
+	}
+
+	public static class DistinctPropertyMethodSubclass extends
+			PropertyMethodSuperclass {
+		public float fvalue;
+
+		@Property(uri = OTHER_PROPERTY_URI)
+		public void propertySuper(Float f) {
+			if (fvalue != 0.0) {
+				throw new RuntimeException("propertySub has already run.");
+			}
+			fvalue = f;
+		}
+	}
+
+	public static class ConflictingUriPropertyMethodSubclass extends
+			PropertyMethodSuperclass {
+
+		@Property(uri = GENERIC_PROPERTY_URI)
+		public void propertyConflict(String v) {
+			// nothing to do.
+		}
+	}
+
+	public static class PropertyMethodOverPropertyMethodSubclass extends
+			EmptyPropertyMethodSubclass {
+		@Override
+		@SuppressWarnings("unused")
+		@Property(uri = GENERIC_PROPERTY_URI)
+		public void propertySuper(String v) {
+			// Should fail (two levels down)
+		}
+	}
+
+	public static class PlainOverPropertyMethodSubclass extends
+			PropertyMethodSuperclass {
+		@SuppressWarnings("unused")
+		public void propertySuper(Float f) {
+			// nothing to do
 		}
 	}
 
