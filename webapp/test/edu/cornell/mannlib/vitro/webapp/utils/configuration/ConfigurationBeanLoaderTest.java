@@ -722,6 +722,7 @@ public class ConfigurationBeanLoaderTest extends
 	// Additional tests
 	// ----------------------------------------------------------------------
 
+	@SuppressWarnings("unused")
 	@Test
 	@Ignore
 	// TODO
@@ -730,6 +731,7 @@ public class ConfigurationBeanLoaderTest extends
 		fail("circularReferencesAreNotFatal not implemented");
 	}
 
+	@SuppressWarnings("unused")
 	@Test
 	@Ignore
 	// TODO deals with circularity.
@@ -738,6 +740,7 @@ public class ConfigurationBeanLoaderTest extends
 		fail("subordinateObjectCantBeLoaded_leavesNoAccessibleInstanceOfParent not implemented");
 	}
 
+	@SuppressWarnings("unused")
 	@Test
 	@Ignore
 	// TODO deals with circularity.
