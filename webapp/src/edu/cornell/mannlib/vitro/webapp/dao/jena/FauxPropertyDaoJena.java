@@ -3,8 +3,6 @@
 package edu.cornell.mannlib.vitro.webapp.dao.jena;
 
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createResource;
-import static edu.cornell.mannlib.vitro.webapp.utils.SparqlQueryRunner.bindValues;
-import static edu.cornell.mannlib.vitro.webapp.utils.SparqlQueryRunner.uriValue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,11 +31,12 @@ import edu.cornell.mannlib.vitro.webapp.beans.FauxProperty;
 import edu.cornell.mannlib.vitro.webapp.dao.FauxPropertyDao;
 import edu.cornell.mannlib.vitro.webapp.dao.InsertException;
 import edu.cornell.mannlib.vitro.webapp.dao.VitroVocabulary;
-import edu.cornell.mannlib.vitro.webapp.utils.SparqlQueryRunner;
-import edu.cornell.mannlib.vitro.webapp.utils.SparqlQueryRunner.QueryParser;
 import edu.cornell.mannlib.vitro.webapp.utils.jena.criticalsection.LockableOntModel;
 import edu.cornell.mannlib.vitro.webapp.utils.jena.criticalsection.LockableOntModelSelector;
 import edu.cornell.mannlib.vitro.webapp.utils.jena.criticalsection.LockedOntModel;
+import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.QueryHolder;
+import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.ResultSetParser;
+import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.SparqlQueryRunner;
 
 /**
  * TODO
@@ -522,7 +521,7 @@ public class FauxPropertyDaoJena extends JenaBaseDao implements FauxPropertyDao 
 			+ "} \n"; //
 
 	private static class ParserLocateConfigContext extends
-			QueryParser<Set<ConfigContext>> {
+			ResultSetParser<Set<ConfigContext>> {
 		private final String domainUri;
 		private final String baseUri;
 		private final String rangeUri;
@@ -561,30 +560,32 @@ public class FauxPropertyDaoJena extends JenaBaseDao implements FauxPropertyDao 
 				LockableOntModel lockableDisplayModel, String domainUri,
 				String baseUri, String rangeUri) {
 			try (LockedOntModel displayModel = lockableDisplayModel.read()) {
-				String queryString;
+				QueryHolder qHolder;
 				if (domainUri == null || domainUri.trim().isEmpty()
 						|| domainUri.equals(OWL.Thing.getURI())) {
-					queryString = bindValues(
-							QUERY_LOCATE_CONFIG_CONTEXT_WITH_NO_DOMAIN,
-							uriValue("baseUri", baseUri),
-							uriValue("rangeUri", rangeUri));
+					qHolder = SparqlQueryRunner
+							.queryHolder(
+									QUERY_LOCATE_CONFIG_CONTEXT_WITH_NO_DOMAIN)
+							.bindToUri("baseUri", baseUri)
+							.bindToUri("rangeUri", rangeUri);
 				} else {
-					queryString = bindValues(
-							QUERY_LOCATE_CONFIG_CONTEXT_WITH_DOMAIN,
-							uriValue("baseUri", baseUri),
-							uriValue("rangeUri", rangeUri),
-							uriValue("domainUri", domainUri));
+					qHolder = SparqlQueryRunner
+							.queryHolder(
+									QUERY_LOCATE_CONFIG_CONTEXT_WITH_DOMAIN)
+							.bindToUri("baseUri", baseUri)
+							.bindToUri("rangeUri", rangeUri)
+							.bindToUri("domainUri", domainUri);
 				}
 				if (log.isDebugEnabled()) {
 					log.debug("domainUri=" + domainUri + ", baseUri=" + baseUri
-							+ ", rangeUri=" + rangeUri + ", queryString="
-							+ queryString);
+							+ ", rangeUri=" + rangeUri + ", qHolder=" + qHolder);
 				}
 
 				ParserLocateConfigContext parser = new ParserLocateConfigContext(
 						domainUri, baseUri, rangeUri);
-				Set<ConfigContext> contexts = new SparqlQueryRunner(
-						displayModel).executeSelect(parser, queryString);
+				Set<ConfigContext> contexts = SparqlQueryRunner
+						.createSelectQueryContext(displayModel, qHolder)
+						.execute().parse(parser);
 
 				log.debug("found " + contexts.size() + " contexts: " + contexts);
 				return contexts;

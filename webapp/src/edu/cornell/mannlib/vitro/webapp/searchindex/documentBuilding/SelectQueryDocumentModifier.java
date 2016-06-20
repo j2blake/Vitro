@@ -5,14 +5,13 @@ package edu.cornell.mannlib.vitro.webapp.searchindex.documentBuilding;
 import static edu.cornell.mannlib.vitro.webapp.modelaccess.ModelAccess.WhichService.CONTENT;
 import static edu.cornell.mannlib.vitro.webapp.search.VitroSearchTermNames.ALLTEXT;
 import static edu.cornell.mannlib.vitro.webapp.search.VitroSearchTermNames.ALLTEXTUNSTEMMED;
-import static edu.cornell.mannlib.vitro.webapp.utils.sparql.SelectQueryRunner.createQueryContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
+import static edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.SparqlQueryRunner.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -24,7 +23,7 @@ import edu.cornell.mannlib.vitro.webapp.rdfservice.RDFService;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.ContextModelsUser;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.Property;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.Validation;
-import edu.cornell.mannlib.vitro.webapp.utils.sparql.SelectQueryHolder;
+import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.QueryHolder;
 
 /**
  * Modify the document, adding the results of one or more select queries.
@@ -151,10 +150,10 @@ public class SelectQueryDocumentModifier implements DocumentModifier,
 
 	private List<String> getTextForQuery(String query, Individual ind) {
 		try {
-			SelectQueryHolder queryHolder = new SelectQueryHolder(query)
-					.bindToUri("uri", ind.getURI());
-			List<String> list = createQueryContext(rdfService, queryHolder)
-					.execute().getStringFields().flatten();
+			QueryHolder queryHolder = new QueryHolder(query).bindToUri("uri",
+					ind.getURI());
+			List<String> list = createSelectQueryContext(rdfService,
+					queryHolder).execute().toStringFields().flatten();
 			log.debug(label + " - query: '" + query + "' returns " + list);
 			return list;
 		} catch (Throwable t) {

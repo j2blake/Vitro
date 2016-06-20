@@ -16,6 +16,7 @@ import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.query.ResultSetFormatter;
+import com.hp.hpl.jena.query.Syntax;
 import com.hp.hpl.jena.rdf.model.Model;
 
 import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.SparqlQueryRunner.ExecutingSelectQueryContext;
@@ -30,6 +31,8 @@ import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.SparqlQueryRunner.Sel
 class ModelSelectQueryContext implements SelectQueryContext {
 	private static final Log log = LogFactory
 			.getLog(ModelSelectQueryContext.class);
+
+	private static final Syntax SYNTAX = Syntax.syntaxARQ;
 
 	private final Model model;
 	private final QueryHolder query;
@@ -76,7 +79,7 @@ class ModelSelectQueryContext implements SelectQueryContext {
 			String qString = query.getQueryString();
 			Set<String> fieldNames = new HashSet<>(Arrays.asList(names));
 			try {
-				Query q = QueryFactory.create(qString);
+				Query q = QueryFactory.create(qString, SYNTAX);
 				QueryExecution qexec = QueryExecutionFactory.create(q, model);
 				try {
 					ResultSet results = qexec.execSelect();
@@ -94,7 +97,7 @@ class ModelSelectQueryContext implements SelectQueryContext {
 		public <T> T parse(ResultSetParser<T> parser) {
 			String qString = query.getQueryString();
 			try {
-				Query q = QueryFactory.create(qString);
+				Query q = QueryFactory.create(qString, SYNTAX);
 				QueryExecution qexec = QueryExecutionFactory.create(q, model);
 				try {
 					return parser.parseResults(qString, qexec.execSelect());
@@ -111,7 +114,7 @@ class ModelSelectQueryContext implements SelectQueryContext {
 		public void writeToOutput(OutputStream output) {
 			String qString = query.getQueryString();
 			try {
-				Query q = QueryFactory.create(qString);
+				Query q = QueryFactory.create(qString, SYNTAX);
 				QueryExecution qexec = QueryExecutionFactory.create(q, model);
 				try {
 					ResultSetFormatter.outputAsJSON(output, qexec.execSelect());

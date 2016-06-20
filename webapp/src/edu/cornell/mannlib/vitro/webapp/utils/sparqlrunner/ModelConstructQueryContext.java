@@ -9,6 +9,7 @@ import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.Syntax;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 
@@ -21,6 +22,8 @@ import edu.cornell.mannlib.vitro.webapp.utils.sparqlrunner.SparqlQueryRunner.Exe
 public class ModelConstructQueryContext implements ConstructQueryContext {
 	private static final Log log = LogFactory
 			.getLog(ModelConstructQueryContext.class);
+
+	private static final Syntax SYNTAX = Syntax.syntaxARQ;
 
 	private final Model model;
 	private final QueryHolder query;
@@ -66,7 +69,7 @@ public class ModelConstructQueryContext implements ConstructQueryContext {
 		public Model toModel() {
 			QueryExecution qe = null;
 			try {
-				Query q = QueryFactory.create(query.getQueryString());
+				Query q = QueryFactory.create(query.getQueryString(), SYNTAX);
 				qe = QueryExecutionFactory.create(q, model);
 				return qe.execConstruct();
 			} catch (Exception e) {
