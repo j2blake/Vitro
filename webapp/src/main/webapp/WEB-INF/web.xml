@@ -106,6 +106,7 @@
     <dispatcher>REQUEST</dispatcher>
   </filter-mapping>
 
+<!-- THIS IS TOMCAT-DEPENDENT
   <filter>
     <filter-name>ExpiresFilter</filter-name>
     <filter-class>org.apache.catalina.filters.ExpiresFilter</filter-class>
@@ -127,6 +128,7 @@
     <url-pattern>/*</url-pattern>
     <dispatcher>REQUEST</dispatcher>
   </filter-mapping>
+-->
 
   <!-- DWR servlet -->
   <servlet>
