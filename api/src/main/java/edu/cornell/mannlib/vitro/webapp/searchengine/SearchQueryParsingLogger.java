@@ -25,6 +25,8 @@ import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchEngineExcepti
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchInputDocument;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchQuery;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResponse;
+import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocument;
+import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocumentList;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.Property;
 
 public class SearchQueryParsingLogger implements SearchEngine {
@@ -110,7 +112,9 @@ public class SearchQueryParsingLogger implements SearchEngine {
 	public SearchResponse query(SearchQuery query)
 			throws SearchEngineException {
 		parseAndLogQuery(query);
-		return innerEngine.query(query);
+		SearchResponse response = innerEngine.query(query);
+		logResponse(response);
+		return response;
 	}
 
 	@Override
@@ -226,5 +230,33 @@ public class SearchQueryParsingLogger implements SearchEngine {
 	private String formatPrefixQuery(PrefixQuery q) {
 		Term t = q.getPrefix();
 		return "PrefixQuery[field=" + t.field() + ", text=" + t.text() + "]";
+	}
+
+	// private void logResponse(SearchResponse response) {
+	// SearchResultDocumentList docList = response.getResults();
+	// long numFound = docList.getNumFound();
+	// int size = docList.size();
+	//
+	// List<Object[]> docSummaries = new ArrayList<>();
+	// for (SearchResultDocument doc : docList) {
+	// docSummaries.add(new Object[] { doc.getFieldValues("URI"),
+	// doc.getFieldValues("nameRaw") });
+	// }
+	// String docSummariesFormatted = Arrays
+	// .deepToString(docSummaries.toArray(new Object[0][0]));
+	//
+	// log.info(String.format("RESPONSE: %d of %d, %s", size, numFound,
+	// docSummariesFormatted));
+	// }
+
+	private void logResponse(SearchResponse response) {
+		SearchResultDocumentList docList = response.getResults();
+		long numFound = docList.getNumFound();
+		int size = docList.size();
+		log.info(String.format("RESPONSE: %d of %d", size, numFound));
+		log.info("FACETS: " + response.getFacetFields());
+		for (SearchResultDocument doc : docList) {
+			log.info("DOC: " + doc.getFieldValuesMap());
+		}
 	}
 }
