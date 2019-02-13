@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.lucene.search.Query;
 
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.index.TransientIndexDocument;
 
@@ -20,8 +21,13 @@ public class TQueryNotImplemented extends TransientQuery {
 	private static final Log log = LogFactory
 			.getLog(TQueryNotImplemented.class);
 
-	public TQueryNotImplemented(String qString) {
-		log.warn("QUERY NOT IMPLEMENTED for '" + qString + "'.");
+	public TQueryNotImplemented(String qString, Query luceneQuery) {
+		log.warn("QUERY NOT IMPLEMENTED for '" + qString + "', parsed to: "
+				+ formatLuceneQuery(luceneQuery));
+	}
+
+	private String formatLuceneQuery(Query luceneQuery) {
+		return String.format("%s: %s", luceneQuery.getClass(), luceneQuery);
 	}
 
 	@Override

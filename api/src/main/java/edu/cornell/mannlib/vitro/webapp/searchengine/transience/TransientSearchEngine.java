@@ -5,6 +5,9 @@ package edu.cornell.mannlib.vitro.webapp.searchengine.transience;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import edu.cornell.mannlib.vitro.webapp.modules.Application;
 import edu.cornell.mannlib.vitro.webapp.modules.ComponentStartupStatus;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchEngine;
@@ -21,6 +24,9 @@ import edu.cornell.mannlib.vitro.webapp.searchengine.transience.index.TransientI
  * A memory-based implementation that forgets everything on shutdown.
  */
 public class TransientSearchEngine implements SearchEngine {
+	private static final Log log = LogFactory
+			.getLog(TransientSearchEngine.class);
+
 	private final TransientIndex index = new TransientIndex();
 
 	@Override
@@ -52,6 +58,7 @@ public class TransientSearchEngine implements SearchEngine {
 	public void add(Collection<SearchInputDocument> docs)
 			throws SearchEngineException {
 		for (SearchInputDocument doc : docs) {
+			log.info("Adding: '" + doc);
 			index.add((BaseSearchInputDocument) doc);
 		}
 	}
@@ -81,10 +88,21 @@ public class TransientSearchEngine implements SearchEngine {
 
 	@Override
 	public void deleteByQuery(String queryText) throws SearchEngineException {
-		SearchQuery q = createQuery(queryText);
-		SearchResponse resp = query(q);
+		try {
+		log.warn("DeleteByQuery");
+		SearchResponse resp = query(createQuery(queryText));
+		long howMany = resp.getResults().size();
+
+		int sizeBefore = index.size();
 		for (SearchResultDocument doc : resp.getResults()) {
 			index.deleteById(doc.getUniqueId());
+		}
+		int sizeAfter = index.size();
+		log.info(String.format(
+				"DeleteByQuery: query='%s', before=%d, deleted=%d, after=%d",
+				queryText, sizeBefore, howMany, sizeAfter));
+		} catch (Exception e) {
+			log.error("EXCEPTION", e);
 		}
 	}
 

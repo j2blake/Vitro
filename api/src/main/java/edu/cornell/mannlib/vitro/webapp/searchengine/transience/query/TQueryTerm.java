@@ -15,13 +15,13 @@ import edu.cornell.mannlib.vitro.webapp.searchengine.transience.index.TransientI
 /**
  * Query: does a term in a field equal the specified value?
  */
-public class TTermQuery extends TransientQuery {
-	private static final Log log = LogFactory.getLog(TTermQuery.class);
+public class TQueryTerm extends TransientQuery {
+	private static final Log log = LogFactory.getLog(TQueryTerm.class);
 
 	private final String field;
 	private final String text;
 
-	public TTermQuery(TermQuery luceneQuery) {
+	public TQueryTerm(TermQuery luceneQuery) {
 		Term term = luceneQuery.getTerm();
 		this.field = term.field();
 		this.text = term.text().trim().toLowerCase();

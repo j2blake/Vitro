@@ -8,15 +8,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.PhraseQuery;
-import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.WildcardQuery;
 
 import edu.cornell.mannlib.vitro.webapp.modules.Application;
 import edu.cornell.mannlib.vitro.webapp.modules.ComponentStartupStatus;
@@ -27,6 +20,7 @@ import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchQuery;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResponse;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocument;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocumentList;
+import edu.cornell.mannlib.vitro.webapp.searchengine.transience.utils.LuceneUtils;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.Property;
 
 public class SearchQueryParsingLogger implements SearchEngine {
@@ -145,7 +139,7 @@ public class SearchQueryParsingLogger implements SearchEngine {
 			QueryParser parser = new QueryParser("ALLTEXT",
 					new WhitespaceAnalyzer());
 			Query luceneQuery = parser.parse(queryString);
-			log.info("Parsed: " + formatLuceneQuery(luceneQuery));
+			log.info("Parsed: " + LuceneUtils.formatLuceneQuery(luceneQuery));
 		} catch (Exception e) {
 			log.info("Failed to parse Query", e);
 		}
@@ -181,55 +175,6 @@ public class SearchQueryParsingLogger implements SearchEngine {
 			terms.add("facetMinCount=" + q.getFacetMinCount());
 		}
 		return "BaseSearchQuery" + terms;
-	}
-
-	private String formatLuceneQuery(Query q) {
-		if (q instanceof BooleanQuery) {
-			return formatBooleanQuery((BooleanQuery) q);
-		} else if (q instanceof TermQuery) {
-			return formatTermQuery((TermQuery) q);
-		} else if (q instanceof PhraseQuery) {
-			return formatPhraseQuery((PhraseQuery) q);
-		} else if (q instanceof WildcardQuery) {
-			return formatWildcardQuery((WildcardQuery) q);
-		} else if (q instanceof PrefixQuery) {
-			return formatPrefixQuery((PrefixQuery) q);
-		} else
-			return q.getClass().getName() + ": " + String.valueOf(q);
-	}
-
-	private String formatBooleanQuery(BooleanQuery q) {
-		List<String> clauses = new ArrayList<>();
-		for (BooleanClause c : q.clauses()) {
-			clauses.add(c.getOccur().name() + " "
-					+ formatLuceneQuery(c.getQuery()));
-		}
-		return "BooleanQuery" + clauses;
-	}
-
-	private String formatTermQuery(TermQuery q) {
-		Term t = q.getTerm();
-		return "TermQuery[field=" + t.field() + ", text=" + t.text() + "]";
-	}
-
-	private String formatPhraseQuery(PhraseQuery q) {
-		List<String> terms = new ArrayList<>();
-		for (Term t : q.getTerms()) {
-			terms.add("[field=" + t.field() + ", text=" + t.text() + "]");
-		}
-		return "PhraseQuery[terms=" + terms + ", positions="
-				+ Arrays.toString(q.getPositions()) + ", slop=" + q.getSlop()
-				+ "]";
-	}
-
-	private String formatWildcardQuery(WildcardQuery q) {
-		Term t = q.getTerm();
-		return "WildcardQuery[field=" + t.field() + ", text=" + t.text() + "]";
-	}
-
-	private String formatPrefixQuery(PrefixQuery q) {
-		Term t = q.getPrefix();
-		return "PrefixQuery[field=" + t.field() + ", text=" + t.text() + "]";
 	}
 
 	private void logResponse(SearchResponse response) {

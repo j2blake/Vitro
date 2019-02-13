@@ -14,11 +14,11 @@ import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchQuery;
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.index.TransientIndexDocument;
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.query.TQueryBoolean.Clause;
+import edu.cornell.mannlib.vitro.webapp.searchengine.transience.utils.LuceneUtils;
 
 /**
  * A base class for the query objects that will simulate the Lucene queries
@@ -60,15 +60,9 @@ public abstract class TransientQuery {
 				new WhitespaceAnalyzer());
 		try {
 			Query luceneQuery = parser.parse(qString);
-			if (luceneQuery instanceof TermQuery) {
-				return new TTermQuery((TermQuery) luceneQuery);
-			} else {
-				return new TQueryNotImplemented(qString);
-			}
+			return LuceneUtils.convertToTransientQuery(luceneQuery, qString);
 		} catch (ParseException e) {
-			log.error("Failed to parse the query: using a null query instead.",
-					e);
-			return new TQueryNotImplemented(qString);
+			return new TQueryNoop(qString, e);
 		}
 	}
 

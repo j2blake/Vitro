@@ -50,6 +50,7 @@ public class TransientIndex {
 
 	public SearchResponse processQuery(SearchQuery query) {
 		TransientQuery tQuery = TransientQuery.parse(query);
+		
 		List<TransientIndexDocument> reducedList = tQuery
 				.process(mapToDocList());
 
