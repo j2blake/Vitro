@@ -3,6 +3,7 @@
 package edu.cornell.mannlib.vitro.webapp.searchengine.transience.index;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +20,11 @@ import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchQuery;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResponse;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocumentList;
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchFacetField;
+import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchFacetField.BaseCount;
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchInputDocument;
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchResponse;
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.query.TransientQuery;
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.response.TransientSearchResultDocumentList;
-import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchFacetField.BaseCount;
 
 /**
  * The memory-based map of search documents, with the ability to add, delete,
@@ -137,7 +138,23 @@ public class TransientIndex {
 			for (Entry<String, Integer> entry : map.entrySet()) {
 				list.add(new BaseCount(entry.getKey(), entry.getValue()));
 			}
+			list.sort(new BaseCountComparator());
 			return list;
+		}
+
+		/** Sort by count descending, then by name ascending. */
+		private static class BaseCountComparator implements Comparator<Count> {
+			@Override
+			public int compare(Count c1, Count c2) {
+				if (c1.getCount() < c2.getCount()) {
+					return 1;
+				} else if (c1.getCount() > c2.getCount()) {
+					return -1;
+				} else {
+					return c1.getName().compareTo(c2.getName());
+				}
+			}
+
 		}
 	}
 

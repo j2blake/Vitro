@@ -232,31 +232,21 @@ public class SearchQueryParsingLogger implements SearchEngine {
 		return "PrefixQuery[field=" + t.field() + ", text=" + t.text() + "]";
 	}
 
-	// private void logResponse(SearchResponse response) {
-	// SearchResultDocumentList docList = response.getResults();
-	// long numFound = docList.getNumFound();
-	// int size = docList.size();
-	//
-	// List<Object[]> docSummaries = new ArrayList<>();
-	// for (SearchResultDocument doc : docList) {
-	// docSummaries.add(new Object[] { doc.getFieldValues("URI"),
-	// doc.getFieldValues("nameRaw") });
-	// }
-	// String docSummariesFormatted = Arrays
-	// .deepToString(docSummaries.toArray(new Object[0][0]));
-	//
-	// log.info(String.format("RESPONSE: %d of %d, %s", size, numFound,
-	// docSummariesFormatted));
-	// }
-
 	private void logResponse(SearchResponse response) {
 		SearchResultDocumentList docList = response.getResults();
 		long numFound = docList.getNumFound();
 		int size = docList.size();
-		log.info(String.format("RESPONSE: %d of %d", size, numFound));
-		log.info("FACETS: " + response.getFacetFields());
+
+		List<Object[]> docSummaries = new ArrayList<>();
 		for (SearchResultDocument doc : docList) {
-			log.info("DOC: " + doc.getFieldValuesMap());
+			docSummaries.add(new Object[] { doc.getFieldValues("URI"),
+					doc.getFieldValues("nameRaw") });
 		}
+		String docSummariesFormatted = Arrays
+				.deepToString(docSummaries.toArray(new Object[0][0]));
+
+		log.info(String.format("RESPONSE: %d of %d, %s", size, numFound,
+				docSummariesFormatted));
 	}
+
 }
