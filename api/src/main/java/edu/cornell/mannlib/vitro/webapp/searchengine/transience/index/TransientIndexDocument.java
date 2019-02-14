@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchInputDocument;
+import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchInputField;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocument;
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchInputDocument;
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchResultDocument;
@@ -23,11 +24,17 @@ public class TransientIndexDocument {
 	private final String id;
 	private final Map<String, TransientIndexField> fieldMap;
 
-	public TransientIndexDocument(BaseSearchInputDocument doc) {
+	public TransientIndexDocument(BaseSearchInputDocument doc,
+			List<String> textFields) {
 		this.id = uniqueId(doc);
 		this.fieldMap = new HashMap<>();
 		for (String name : doc.getFieldMap().keySet()) {
-			fieldMap.put(name, new TransientIndexField(doc.getField(name)));
+			SearchInputField field = doc.getField(name);
+			if (textFields.contains(name)) {
+				fieldMap.put(name, new TransientIndexTextField(field));
+			} else {
+				fieldMap.put(name, new TransientIndexTokenField(field));
+			}
 		}
 	}
 

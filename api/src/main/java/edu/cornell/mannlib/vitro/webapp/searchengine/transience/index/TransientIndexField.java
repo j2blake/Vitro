@@ -12,8 +12,10 @@ import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchInputField;
 /**
  * Keep in mind: In a SearchInputField, each "value" may actually be an array of
  * values, or a collection of values. Store them here as separate objects.
+ * 
+ * Do we parse the values into smaller terms or not? Let the sub-classes decide.
  */
-public class TransientIndexField {
+public abstract class TransientIndexField {
 
 	private List<Object> values;
 	private List<String> lowerCaseTerms;
@@ -21,7 +23,7 @@ public class TransientIndexField {
 
 	public TransientIndexField(SearchInputField field) {
 		this.values = figureValues(field.getValues());
-		this.lowerCaseTerms = figureLowerCaseTerms();
+		this.lowerCaseTerms = figureLowerCaseTerms(this.values);
 		this.sortValue = figureSortValue();
 	}
 
@@ -39,19 +41,7 @@ public class TransientIndexField {
 		return list;
 	}
 
-	private List<String> figureLowerCaseTerms() {
-		List<String> lcTerms = new ArrayList<>();
-		for (Object value : values) {
-			String cleaned = String.valueOf(value).trim().toLowerCase();
-			String[] split = cleaned.split("\\s+");
-			for (String term : split) {
-				if (term.length() > 0) {
-					lcTerms.add(term);
-				}
-			}
-		}
-		return lcTerms;
-	}
+	protected abstract List<String> figureLowerCaseTerms(List<Object> values);
 
 	private String figureSortValue() {
 		StringBuilder builder = new StringBuilder();

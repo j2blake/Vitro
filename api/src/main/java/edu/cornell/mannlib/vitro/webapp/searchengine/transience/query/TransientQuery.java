@@ -11,6 +11,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.Query;
@@ -29,25 +30,39 @@ public abstract class TransientQuery {
 
 	/**
 	 * Build a tree of TransientQuery objects for the query and any filters.
+	 * 
+	 * Pass the list of textFields to the QueryParser, so it can tokenize
+	 * properly.
 	 */
-	public static TransientQuery parse(SearchQuery query) {
-		TransientQuery tq = parse(cleanQueryString(query.getQuery()));
+	public static TransientQuery parse(SearchQuery query,
+			List<String> textFields) {
+		QueryParser parser = createParser(textFields);
+
+		TransientQuery tq = parse(cleanQueryString(query.getQuery()), parser);
 
 		if (query.getFilters().size() > 0) {
-			tq = combineWithFilters(tq, query);
+			tq = combineWithFilters(tq, query, parser);
 		}
 
 		log.warn("Query: " + tq);
 		return tq;
 	}
 
+	private static QueryParser createParser(List<String> textFields) {
+		return new MultiFieldQueryParser(textFields.toArray(new String[0]),
+				new WhitespaceAnalyzer());
+	}
+
 	private static TransientQuery combineWithFilters(TransientQuery tq,
-			SearchQuery query) {
+			SearchQuery query, QueryParser parser) {
 		List<Clause> clauses = new ArrayList<>();
 		clauses.add(new Clause(tq, SHOULD));
+
 		for (String fString : query.getFilters()) {
-			clauses.add(new Clause(parse(cleanQueryString(fString)), FILTER));
+			TransientQuery tQuery = parse(cleanQueryString(fString), parser);
+			clauses.add(new Clause(tQuery, FILTER));
 		}
+
 		return new TQueryBoolean(clauses);
 	}
 
@@ -55,9 +70,7 @@ public abstract class TransientQuery {
 	 * Run the query string through Lucene's parser, and translate the resulting
 	 * Lucene Query objects into their equivalent TransientQuery objects.
 	 */
-	private static TransientQuery parse(String qString) {
-		QueryParser parser = new QueryParser("ALLTEXT",
-				new WhitespaceAnalyzer());
+	private static TransientQuery parse(String qString, QueryParser parser) {
 		try {
 			Query luceneQuery = parser.parse(qString);
 			return LuceneUtils.convertToTransientQuery(luceneQuery, qString);

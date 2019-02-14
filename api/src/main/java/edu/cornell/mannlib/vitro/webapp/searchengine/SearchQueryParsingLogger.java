@@ -3,11 +3,13 @@ package edu.cornell.mannlib.vitro.webapp.searchengine;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.Query;
 
@@ -18,8 +20,6 @@ import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchEngineExcepti
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchInputDocument;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchQuery;
 import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResponse;
-import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocument;
-import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocumentList;
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.utils.LuceneUtils;
 import edu.cornell.mannlib.vitro.webapp.utils.configuration.Property;
 
@@ -27,12 +27,26 @@ public class SearchQueryParsingLogger implements SearchEngine {
 	private static final Log log = LogFactory
 			.getLog(SearchQueryParsingLogger.class);
 
+	// ----------------------------------------------------------------------
+	// Configuration
+	// ----------------------------------------------------------------------
+
 	private SearchEngine innerEngine;
+	private List<String> textFields = Collections.emptyList();
 
 	@Property(uri = "http://vitro.mannlib.cornell.edu/ns/vitro/ApplicationSetup#wraps", minOccurs = 1, maxOccurs = 1)
 	public void setInnerEngine(SearchEngine inner) {
 		innerEngine = inner;
 	}
+
+	@Property(uri = "http://vitro.mannlib.cornell.edu/ns/vitro/ApplicationSetup#hasTextFields", minOccurs = 0, maxOccurs = 1)
+	public void setTextFields(String names) {
+		textFields = Arrays.asList(names.split("[\\s,]+"));
+	}
+
+	// ----------------------------------------------------------------------
+	// Running
+	// ----------------------------------------------------------------------
 
 	@Override
 	public void startup(Application application, ComponentStartupStatus ss) {
@@ -106,9 +120,7 @@ public class SearchQueryParsingLogger implements SearchEngine {
 	public SearchResponse query(SearchQuery query)
 			throws SearchEngineException {
 		parseAndLogQuery(query);
-		SearchResponse response = innerEngine.query(query);
-		logResponse(response);
-		return response;
+		return innerEngine.query(query);
 	}
 
 	@Override
@@ -136,7 +148,8 @@ public class SearchQueryParsingLogger implements SearchEngine {
 			queryString = queryString.replace("http://", "http\\://");
 			queryString = queryString.replace("/", "\\/");
 
-			QueryParser parser = new QueryParser("ALLTEXT",
+			QueryParser parser = new MultiFieldQueryParser(
+					textFields.toArray(new String[0]),
 					new WhitespaceAnalyzer());
 			Query luceneQuery = parser.parse(queryString);
 			log.info("Parsed: " + LuceneUtils.formatLuceneQuery(luceneQuery));
@@ -153,7 +166,7 @@ public class SearchQueryParsingLogger implements SearchEngine {
 		if (q.getStart() != 0) {
 			terms.add("start=" + q.getStart());
 		}
-		if (q.getRows() != 0) {
+		if (q.getRows() != -1) {
 			terms.add("rows=" + q.getRows());
 		}
 		if (q.getFieldsToReturn().size() > 0) {
@@ -175,23 +188,6 @@ public class SearchQueryParsingLogger implements SearchEngine {
 			terms.add("facetMinCount=" + q.getFacetMinCount());
 		}
 		return "BaseSearchQuery" + terms;
-	}
-
-	private void logResponse(SearchResponse response) {
-		SearchResultDocumentList docList = response.getResults();
-		long numFound = docList.getNumFound();
-		int size = docList.size();
-
-		List<Object[]> docSummaries = new ArrayList<>();
-		for (SearchResultDocument doc : docList) {
-			docSummaries.add(new Object[] { doc.getFieldValues("URI"),
-					doc.getFieldValues("nameRaw") });
-		}
-		String docSummariesFormatted = Arrays
-				.deepToString(docSummaries.toArray(new Object[0][0]));
-
-		log.info(String.format("RESPONSE: %d of %d, %s", size, numFound,
-				docSummariesFormatted));
 	}
 
 }

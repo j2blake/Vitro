@@ -4,6 +4,8 @@ package edu.cornell.mannlib.vitro.webapp.searchengine.transience;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,6 +21,7 @@ import edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchResultDocumen
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchInputDocument;
 import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchQuery;
 import edu.cornell.mannlib.vitro.webapp.searchengine.transience.index.TransientIndex;
+import edu.cornell.mannlib.vitro.webapp.utils.configuration.Property;
 
 /**
  * A memory-based implementation that forgets everything on shutdown.
@@ -27,11 +30,18 @@ public class TransientSearchEngine implements SearchEngine {
 	private static final Log log = LogFactory
 			.getLog(TransientSearchEngine.class);
 
-	private final TransientIndex index = new TransientIndex();
+	private List<String> textFields = Collections.emptyList();
+
+	@Property(uri = "http://vitro.mannlib.cornell.edu/ns/vitro/ApplicationSetup#hasTextFields", minOccurs = 0, maxOccurs = 1)
+	public void setTextFields(String names) {
+		textFields = Arrays.asList(names.split("[\\s,]+"));
+	}
+
+	private TransientIndex index = new TransientIndex();
 
 	@Override
 	public void startup(Application application, ComponentStartupStatus ss) {
-		// nothing to start up.
+		index = new TransientIndex(textFields);
 	}
 
 	@Override
@@ -58,7 +68,6 @@ public class TransientSearchEngine implements SearchEngine {
 	public void add(Collection<SearchInputDocument> docs)
 			throws SearchEngineException {
 		for (SearchInputDocument doc : docs) {
-			log.info("Adding: '" + doc);
 			index.add((BaseSearchInputDocument) doc);
 		}
 	}
@@ -89,20 +98,22 @@ public class TransientSearchEngine implements SearchEngine {
 	@Override
 	public void deleteByQuery(String queryText) throws SearchEngineException {
 		try {
-		log.warn("DeleteByQuery");
-		SearchResponse resp = query(createQuery(queryText));
-		long howMany = resp.getResults().size();
+			SearchResponse resp = query(createQuery(queryText));
+			long howMany = resp.getResults().size();
 
-		int sizeBefore = index.size();
-		for (SearchResultDocument doc : resp.getResults()) {
-			index.deleteById(doc.getUniqueId());
-		}
-		int sizeAfter = index.size();
-		log.info(String.format(
-				"DeleteByQuery: query='%s', before=%d, deleted=%d, after=%d",
-				queryText, sizeBefore, howMany, sizeAfter));
+			int sizeBefore = index.size();
+			for (SearchResultDocument doc : resp.getResults()) {
+				index.deleteById(doc.getUniqueId());
+			}
+			int sizeAfter = index.size();
+			log.debug(String.format(
+					"DeleteByQuery: query='%s', before=%d, deleted=%d, after=%d",
+					queryText, sizeBefore, howMany, sizeAfter));
 		} catch (Exception e) {
+			// If this occurs, the indexing thread will not report it.
+			// Report it here.
 			log.error("EXCEPTION", e);
+			throw e;
 		}
 	}
 

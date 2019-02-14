@@ -3,6 +3,7 @@
 package edu.cornell.mannlib.vitro.webapp.searchengine.transience.index;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -33,10 +34,19 @@ import edu.cornell.mannlib.vitro.webapp.searchengine.transience.response.Transie
 public class TransientIndex {
 	private static final Log log = LogFactory.getLog(TransientIndex.class);
 
+	private List<String> textFields;
 	private final SortedMap<String, TransientIndexDocument> map = new TreeMap<>();
 
+	public TransientIndex() {
+		this(Collections.emptyList());
+	}
+	
+	public TransientIndex(List<String> textFields) {
+		this.textFields = textFields;
+	}
+
 	public void add(BaseSearchInputDocument doc) {
-		TransientIndexDocument indexDoc = new TransientIndexDocument(doc);
+		TransientIndexDocument indexDoc = new TransientIndexDocument(doc, textFields);
 		map.put(indexDoc.getId(), indexDoc);
 	}
 
@@ -49,7 +59,7 @@ public class TransientIndex {
 	}
 
 	public SearchResponse processQuery(SearchQuery query) {
-		TransientQuery tQuery = TransientQuery.parse(query);
+		TransientQuery tQuery = TransientQuery.parse(query, textFields);
 		
 		List<TransientIndexDocument> reducedList = tQuery
 				.process(mapToDocList());
