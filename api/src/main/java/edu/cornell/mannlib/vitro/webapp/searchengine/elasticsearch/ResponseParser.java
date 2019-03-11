@@ -28,7 +28,7 @@ import edu.cornell.mannlib.vitro.webapp.searchengine.base.BaseSearchResultDocume
  * Elastic search sends a JSON response to a query. parse it to a
  * SearchResponse.
  */
-class ResponseParser {
+public class ResponseParser {
     private static final Log log = LogFactory.getLog(ResponseParser.class);
 
     private final Map<String, Object> responseMap;
