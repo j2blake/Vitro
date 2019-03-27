@@ -137,7 +137,7 @@ curl -X PUT "localhost:9200/multi_secondary?pretty" -H 'Content-Type: applicatio
 
 ```
 git clone https://github.com/vivo-project/VIVO.git
-git clone -b feature/elasticsearchExperiments https://github.com/j2blake/Vitro.git
+git clone -b feature/multielasticExperiments https://github.com/j2blake/Vitro.git
 ```
 
 ## Create the search configuration file
