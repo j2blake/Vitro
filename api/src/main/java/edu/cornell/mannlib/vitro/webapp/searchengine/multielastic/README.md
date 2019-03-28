@@ -3,14 +3,84 @@
 	* can populate multiple indexes,
 	* can create nested fields.
 
-# What has been done? 
-* Implement the `SearchEngine` interface
-	* Classes in `edu.cornell.mannlib.vitro.webapp.searchengine.multielastic`
-* No attempt to add new functions.
+## The gist
 
-# How to experiment with it?
+### The VIVO search index
+VIVO needs a search index. Besides the searches that a user requests, 
+VIVO also uses the search index "behind the scenes". The home page, the index page,
+and more, all rely on the search index.
+
+### Additional indexes
+Some VIVO installations may find it handy to have another search index 
+besides the usual one. A second search index may be used to drive an
+alternate front-end, or to provide other functions.
+
+A second search index (or third?) should use the same updating mechanism
+that the original index uses, so it remains in sync with the data in the
+triple store.
+
+### Configuring the search index
+The VIVO search indexer uses three types of configuration objects:
+
+* `SearchIndexExcluder` -- tell the indexer that some types of instance should
+  not be indexed.
+	* For example, timestamps or vcards or "connecting nodes" like authorships or positions. 
+	* These types have no documents of their own in the search index.
+	* Data from these types may be included in the search documents for related objects,
+	  such as people, organizations, or grants.
+* `IndexingUriFinder` -- tell the indexer what URIs might be affected when a triple changes.
+	* For example, if the name of an Academic Department changes, then the 
+	  members of that department must also be re-indexed.
+* `DocumentModifier` -- after the minimal document is created, these add fields and values to the document.
+	* For example, if a document represents a `foaf:Person`, a `DocumentModifier` might create a 
+	  `PREFERRED_TITLE` field to that document.
+	  
+These objects are usually specified in files in `rdf/display/everytime`.
+	  
+### The `MultiElasticSearchEngine` 
+
+This implementation of the `SearchEngine` interface provides two additional functions.
+
+#### Support for additional indexes
+
+* When you configure the `MultiElasticSearchEngine` you must specify a "default index",
+  which VIVO will use as it always has.
+* You may also configure one or more "secondary indexes". These will be populated by
+  specially named fields. The fields are created, as always, by the `DocumentModifier` objects.
+	* To specify that a field belongs to a secondary index, include the index name, followed by a colon.
+	  For example:
+		* A field named `course_info` would be created in the default index
+		* A field named `graphQL:course_info` would be created in the secondary index named `graphQL`.
+		* Within the secondary index, the field would be named `graphQL`.
+* This code doesn't provide any way for VIVO to use the secondary indexes. 
+  It only provides the way to populate them. 
+	* Presumably, other processes will query the secondary index for their own purposes.
+
+#### Support for nested fields
+
+* You may create `DocumentModifier` objects to populate nested fields, in the default index
+  or in the secondary index.
+	* To specify a nested field, include the parent(s) in the field name, separated by periods.
+	  For example:
+		* A field named `person.title` would populate a field in the search index named `title`
+		  nested within a field named `person`.
+		* A field named `graph:person.title` would populate the same field, but in a 
+		  secondary index.
+* You may need to declare those nested fields in the mapping of the index (see below),
+  in order for them to work properly
+
+#### Backward compatibility
+
+* What happens if you configure a `DocumentModifier` with a field named `graph:person.title`
+  but you use the standard `SolrSearchEngine` or the `ElasticSearchEngine` instead of the
+  `MultiElasticSearchEngine`?
+  * You get an field in the standard VIVO index, named `graph:person.title`.
+    Not what you wanted, perhaps, but it should not throw exceptions.
+   
+# How to experiment with this package?
 * Install elasticsearch somewhere.
-* Create one or more search indexes with the appropriate mappings (see below).
+* Decide on the names of your search indexes (see below).
+* Create your search indexes with the appropriate mappings (see below).
 * Start elasticsearch
 * Check out VIVO and this branch of Vitro (see below), 
 * Create a new configuration file that will populate the secondary index (see below).
@@ -39,11 +109,25 @@
 
 # The details:
 
-## A mapping for the search index
-* If the index uses the default mapping, it will not work correctly.
+## Decide on the names of your search indexes
+
+### Your default index
+This is the index that VIVO will use for its usual activities. 
+
+* The name you choose will be the name of the index in elasticsearch
+* In the examples below we will `vivo` as the default index.
+
+### Any secondary indexes
+* The name you choose will be the actual name of the index in elasticsearch
+* The name will also be the prefix for field names in the configuration of `DocumentModifier` objects.
+
+## A mapping for the default index
+
+* You must explicitly provide a mapping before populating the index.
+* If the index uses the default mapping, it will not work correctly. 
 * Some fields must be declared as `keyword`, some as unstemmed, etc.
 
-* Example mapping script:
+#### Example mapping script:
 
 ```
 curl -X PUT "localhost:9200/vivo?pretty" -H 'Content-Type: application/json' -d'
@@ -104,16 +188,17 @@ curl -X PUT "localhost:9200/vivo?pretty" -H 'Content-Type: application/json' -d'
 '
 ```
 * __*Note:*__ The first line of the script specifies the name of the index as `vivo`. 
-Any name may be used, but it must match the "base URL" that is specified in `applicationSetup.n3` (see below).
+  Any name may be used, but it must match the `hasDefaultIndex` that is specified 
+  in `applicationSetup.n3` (see below).
 * __*Note:*__ The same first line specifies the location and port number of the elasticsearch server.
-Again, any location and port may be used, but they must match the "base URL" in `applicationSetup.n3`.
+  Again, any location and port may be used, but they must match `hasBaseUrl` in `applicationSetup.n3`.
 
 ## A mapping for the secondary index
 * What are you trying to use this for?
 * Here is an example mapping script. It's a silly example, but it shows some nested fields.
 
 ```
-curl -X PUT "localhost:9200/multi_secondary?pretty" -H 'Content-Type: application/json' -d'
+curl -X PUT "localhost:9200/secondary?pretty" -H 'Content-Type: application/json' -d'
 {
   "mappings": {
     "_doc": { 
@@ -130,6 +215,13 @@ curl -X PUT "localhost:9200/multi_secondary?pretty" -H 'Content-Type: applicatio
 }
 '
 ```
+
+* __*Note:*__ The first line of the script specified the name of the index as `secondary`.
+  Any name may be used, but it must match (one of) the `hasSecondaryIndex` fields specified
+  in `applicationSetup.n3` (see below).
+* __*Note:*__ I don't know whether it is necessary to define nested fields in order 
+  for them to populate correctly.
+* __*Note:*__ There may be other types of fields that need to be defined in the mapping. 
 
 ## Check out VIVO and Vitro
 * For now, the Elasticsearch driver only lives in my fork of Vitro
@@ -159,13 +251,13 @@ git clone -b feature/multielasticExperiments https://github.com/j2blake/Vitro.gi
     a   searchIndex:documentBuilding.SelectQueryDocumentModifier ,
         searchIndex:documentBuilding.DocumentModifier ;
     rdfs:label "All labels are added to name fields." ;
-    :hasTargetField "multi_secondary:label" ;
+    :hasTargetField "secondary:label" ;
     :hasSelectQuery """
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
-		SELECT ?label 
-		WHERE {
-			?uri rdfs:label ?label .
-	    }
+        SELECT ?label 
+        WHERE {
+          ?uri rdfs:label ?label .
+        }
         """ .
 
 # Store each of the types in the nested "person ==> type" field.
@@ -173,29 +265,29 @@ git clone -b feature/multielasticExperiments https://github.com/j2blake/Vitro.gi
     a   searchIndex:documentBuilding.SelectQueryDocumentModifier ,
         searchIndex:documentBuilding.DocumentModifier ;
     rdfs:label "All labels are added to name fields." ;
-    :hasTargetField "multi_secondary:person.type" ;
+    :hasTargetField "secondary:person.type" ;
     :hasSelectQuery """
-		SELECT ?type
-		WHERE {
-			?uri a ?type .
-	    }
+        SELECT ?type
+        WHERE {
+          ?uri a ?type .
+        }
         """ .
 
-# Store any telephone numbers in the nested "person ==> type" field.
+# Store any telephone numbers in the nested "person ==> phone" field.
 :documentModifier_multiNestedPhoneNumber
     a   searchIndex:documentBuilding.SelectQueryDocumentModifier ,
         searchIndex:documentBuilding.DocumentModifier ;
     rdfs:label "All labels are added to name fields." ;
-    :hasTargetField "multi_secondary:person.phone" ;
+    :hasTargetField "secondary:person.phone" ;
     :hasSelectQuery """
         PREFIX obo: <http://purl.obolibrary.org/obo/>
         PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-		SELECT ?phone
-		WHERE {
-			?uri obo:ARG_2000028 ?contact .
-			?contact vcard:hasTelephone ?vcardphone .
-			?vcardphone vcard:telephone ?phone .
-	    }
+        SELECT ?phone
+        WHERE {
+          ?uri obo:ARG_2000028 ?contact .
+          ?contact vcard:hasTelephone ?vcardphone .
+          ?vcardphone vcard:telephone ?phone .
+        }
         """ .
 ```
 
@@ -203,7 +295,7 @@ This will produce search documents in this form:
 
 ```
   {
-    "_index" : "multi_secondary",
+    "_index" : "secondary",
     "_type" : "_doc",
     "_id" : "vitroIndividual:http://scholars.cornell.edu/individual/n1073",
     "_score" : 1.0,
@@ -233,6 +325,15 @@ This will produce search documents in this form:
     }
   }
 ```
+
+* __*Note:*__ The `DocId` field is present on every record, even though it is not configured.
+	* __*TODO:*__ Probably the `URI` field should behave in the same way.
+* __*Note:*__ These configurations all use the `SelectQueryDocumentModifier` to populate 
+  the fields. It might make more sense, and perhaps be more efficient, to create your own
+  custom implementation of the `DocumentModifier` interface. This would be a small 
+  Java class that populates some or all of the fields that you require.
+* __*Note:*__ See the comments in `SelectQueryDocumentModifier.java` for more information
+  about configuring.
 
 ## Modify `applicationSetup.n3`
 * Change this:
@@ -273,55 +374,9 @@ This will produce search documents in this form:
     a   <java:edu.cornell.mannlib.vitro.webapp.searchengine.multielastic.MultiElasticSearchEngine> ,
         <java:edu.cornell.mannlib.vitro.webapp.modules.searchEngine.SearchEngine> ;
     :hasBaseUrl "http://localhost:9200" ;
-    :hasDefaultIndex "multi_default" ;
-    :hasSecondaryIndex "multi_secondary" .
+    :hasDefaultIndex "vivo" ;
+    :hasSecondaryIndex "secondary" .
 ```
 
-## Enhance the contents of the search index
-### An example: Publication URIs in the author's search document
-* Add a keyword field to the search index
-
-```
-        "publicationURI": { 
-          "type": "keyword" 
-        },
-```
-
-* Add a `DocumentModifier` to VIVO.
-
-```
-:documentModifier_publications
-    a   <java:edu.cornell.mannlib.vitro.webapp.searchindex.documentBuilding.SelectQueryDocumentModifier> ,
-        <java:edu.cornell.mannlib.vitro.webapp.searchindex.documentBuilding.DocumentModifier> ;
-    rdfs:label "URIs of publications are added to publicationURI field." ;
-    :hasTargetField "publicationURI" ;
-    :hasSelectQuery """
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
-        PREFIX vivo: <http://vivoweb.org/ontology/core#>
-        PREFIX bibo: <http://purl.org/ontology/bibo/>
-        SELECT ?publication 
-		WHERE {
-			?uri vivo:relatedBy ?authorship .
-			?authorship a vivo:Authorship .
-			?authorship vivo:relates ?publication .
-			?publication a bibo:Document .
-	    }
-	    """ .
-```
-
-## Use data distributors to query the search index
-* Install the Data Distribution API
-* Add a distributor:
-
-```
-:drill_by_URI
-    a   <java:edu.cornell.library.scholars.webapp.controller.api.distribute.DataDistributor> ,
-        <java:edu.cornell.library.scholars.webapp.controller.api.distribute.search.DrillDownSearchByUriDataDistributor> ;
-    :actionName "searchAndDrill" .
-```
-
-* Run the query:
-
-```
-http://localhost:8080/vivo/api/dataRequest/searchAndDrill?uri=http://scholars.cornell.edu/individual/mj495
-```
+* __*Note:*__ You may use zero or more `hasSecondaryIndex` properties depending on how many
+  secondary indexes you need to populate.

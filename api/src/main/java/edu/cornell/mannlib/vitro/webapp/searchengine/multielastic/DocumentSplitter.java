@@ -37,7 +37,7 @@ public class DocumentSplitter {
 
     public Map<String, SearchInputDocument> split(SearchInputDocument inDoc)
             throws SearchEngineException {
-        DocumentMap docMap = new DocumentMap(parent, inDoc.getField("DocId"));
+        DocumentMap docMap = new DocumentMap(parent, inDoc.getField("DocId"), inDoc.getField("URI"));
         for (SearchInputField field : inDoc.getFieldMap().values()) {
             docMap.addField(field);
         }
@@ -48,12 +48,14 @@ public class DocumentSplitter {
         private final Map<String, SearchInputDocument> map;
         private final MultiElasticSearchContext parent;
         private final SearchInputField idField;
+        private final SearchInputField uriField;
 
         public DocumentMap(MultiElasticSearchContext parent,
-                SearchInputField idField) {
+                SearchInputField idField, SearchInputField uriField) {
             this.map = new HashMap<>();
             this.parent = parent;
             this.idField = idField;
+            this.uriField = uriField;
         }
 
         public void addField(SearchInputField inField)
@@ -64,11 +66,21 @@ public class DocumentSplitter {
 
         private SearchInputDocument findDoc(String indexName) {
             if (!map.containsKey(indexName)) {
-                SearchInputDocument doc = parent.createInputDocument();
-                doc.addField(unqualifyField(doc, idField));
-                map.put(indexName, doc);
+                map.put(indexName, createNewDocument());
             }
             return map.get(indexName);
+        }
+
+        /**
+         * Each document in each index gets DocId and URI fields.
+         */
+        private SearchInputDocument createNewDocument() {
+            SearchInputDocument doc = parent.createInputDocument();
+            doc.addField(unqualifyField(doc, idField));
+            if (uriField != null) {
+                doc.addField(unqualifyField(doc, uriField));
+            }
+            return doc;
         }
 
         private SearchInputField unqualifyField(SearchInputDocument doc,
